@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, FlatList, Image } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
 
-import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 
-import useFetch from "@/services/usefetch";
 import { fetchMovies } from "@/services/api";
 import { updateSearchCount } from "@/services/appwrite";
+import useFetch from "@/services/usefetch";
 
-import SearchBar from "@/components/SearchBar";
 import MovieDisplayCard from "@/components/MovieCard";
+import SearchBar from "@/components/SearchBar";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,34 +26,36 @@ const Search = () => {
     setSearchQuery(text);
   };
 
-  // Debounced search effect to prevent excessive API calls
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      if (searchQuery.trim()) {
-        await loadMovies();
-
-        // Call updateSearchCount only if there are results
-        if (movies?.length! > 0 && movies?.[0]) {
-          await updateSearchCount(searchQuery, movies[0]);
-        }
-      } else {
+      if (!searchQuery.trim()) {
         reset();
+        return;
+      }
+      try {
+        const results = await loadMovies();
+        if (Array.isArray(results) && results.length > 0) {
+          try {
+            await updateSearchCount(searchQuery, results[0]);
+          } catch (e) {
+            console.error("Appwrite updateSearchCount failed:", e);
+          }
+        }
+      } catch {
+        // TMDB errors are handled in useFetch and fall into the error state
       }
     }, 500);
-
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
   return (
     <View className="flex-1 bg-primary">
-      {/* Background Image Section */}
       <Image
         source={images.bg}
         className="flex-1 absolute w-full z-0"
         resizeMode="cover"
       />
 
-      {/* Movie Card and Search Bar Section */}
       <FlatList
         className="px-5"
         data={movies as Movie[]}
@@ -111,7 +113,7 @@ const Search = () => {
               <Text className="text-center text-gray-500">
                 {searchQuery.trim()
                   ? "No movies found"
-                  : "Start typing to search for a movies"}
+                  : "Start typing to search for movies"}
               </Text>
             </View>
           ) : null

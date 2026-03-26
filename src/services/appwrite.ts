@@ -1,17 +1,14 @@
 import { Client, Databases, ID, Query } from "react-native-appwrite";
 
-// Appwrite Configuration
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = process.env.EXPO_PUBLIC_APPWRITE_COLLECTION_ID!;
 
-// Initialize Appwrite Client
 const client = new Client()
   .setEndpoint("https://cloud.appwrite.io/v1")
   .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!);
 
 const database = new Databases(client);
 
-// Update Search Count
 export const updateSearchCount = async (query: string, movie: Movie) => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
@@ -29,12 +26,17 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
         },
       );
     } else {
+      const posterUrl = movie.poster_path
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        : "https://placehold.co/500x750/1a1a1a/FFFFFF.png";
+
       await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
         searchTerm: query,
         movie_id: movie.id,
         title: movie.title,
         count: 1,
-        poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+        poster_url: posterUrl,
+        isActive: true,
       });
     }
   } catch (error) {
@@ -43,7 +45,6 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
   }
 };
 
-// Fetch Trending Movies
 export const getTrendingMovies = async (): Promise<
   TrendingMovie[] | undefined
 > => {
@@ -56,6 +57,6 @@ export const getTrendingMovies = async (): Promise<
     return result.documents as unknown as TrendingMovie[];
   } catch (error) {
     console.error("Error fetching trending movies:", error);
-    return undefined;
+    throw new Error("Failed to fetch trending movies");
   }
 };
