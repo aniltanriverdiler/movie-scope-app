@@ -67,7 +67,7 @@ const Index = () => {
               onPress={() => {
                 router.push("/search");
               }}
-              placeholder="Search for a movie"
+              placeholder="Search through 300+ movies online"
             />
 
             {/* Trending Movies Section */}
