@@ -4,8 +4,10 @@ import { ActivityIndicator, StatusBar, View } from "react-native";
 import { Provider } from "react-redux";
 
 import "../global.css";
+import { hydrateProfile } from "@/store/features/profileSlice";
 import { hydrate } from "@/store/features/savedMoviesSlice";
 import {
+  loadProfileState,
   loadSavedMoviesState,
   subscribePersistSavedMovies,
 } from "@/store/persistStorage";
@@ -18,8 +20,12 @@ export default function RootLayout() {
     let unsub: (() => void) | undefined;
     (async () => {
       const saved = await loadSavedMoviesState();
+      const profile = await loadProfileState();
       if (saved) {
         store.dispatch(hydrate(saved));
+      }
+      if (profile) {
+        store.dispatch(hydrateProfile(profile));
       }
       setReady(true);
       unsub = subscribePersistSavedMovies(store);

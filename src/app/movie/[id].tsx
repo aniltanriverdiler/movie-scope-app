@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -15,6 +16,7 @@ import useFetch from "@/services/usefetch";
 import {
   addToWatchlist,
   markAsWatched,
+  recordRecentlyViewed,
   removeMovie,
   selectSavedMovieById,
   toggleFavorite,
@@ -57,6 +59,20 @@ const MovieDetail = () => {
   const fav = saved?.status === "favorite";
   const wl = saved?.status === "watchlist";
   const wd = saved?.status === "watched";
+
+  // Record recently viewed movie
+  useEffect(() => {
+    if (!movie) return;
+    dispatch(
+      recordRecentlyViewed({
+        id: String(movie.id),
+        title: movie.title,
+        poster_path: movie.poster_path,
+        vote_average: movie.vote_average,
+        release_date: movie.release_date ?? "",
+      }),
+    );
+  }, [movie?.id, dispatch]);
 
   if (loading) {
     return (

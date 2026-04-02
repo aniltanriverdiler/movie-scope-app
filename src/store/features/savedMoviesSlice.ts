@@ -17,12 +17,26 @@ export type SavedMovie = Movie & {
   createdAt: number;
 };
 
+/** TMDB-aligned shape for reusing MovieCard in “Recently viewed” */
+export type RecentlyViewedEntry = {
+  id: string;
+  title: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date: string;
+  viewedAt: number;
+};
+
 export type SavedMoviesState = {
   entities: Record<string, SavedMovie>;
+  recentlyViewed: RecentlyViewedEntry[];
 };
+
+const MAX_RECENT = 20;
 
 const initialState: SavedMoviesState = {
   entities: {},
+  recentlyViewed: [],
 };
 
 export const savedMoviesSlice = createSlice({
@@ -30,9 +44,24 @@ export const savedMoviesSlice = createSlice({
   initialState,
   reducers: {
     hydrate: (state, action: PayloadAction<SavedMoviesState | undefined>) => {
-      if (action.payload?.entities) {
+      if (!action.payload) return;
+      if (action.payload.entities) {
         state.entities = action.payload.entities;
       }
+      if (Array.isArray(action.payload.recentlyViewed)) {
+        state.recentlyViewed = action.payload.recentlyViewed;
+      }
+    },
+    recordRecentlyViewed: (
+      state,
+      action: PayloadAction<Omit<RecentlyViewedEntry, "viewedAt">>,
+    ) => {
+      const viewedAt = Date.now();
+      const next = [
+        { ...action.payload, viewedAt },
+        ...state.recentlyViewed.filter((x) => x.id !== action.payload.id),
+      ];
+      state.recentlyViewed = next.slice(0, MAX_RECENT);
     },
     addToFavorites: (state, action: PayloadAction<Movie>) => {
       const id = action.payload.id;
@@ -82,6 +111,7 @@ export const savedMoviesSlice = createSlice({
 
 export const {
   hydrate,
+  recordRecentlyViewed,
   addToFavorites,
   addToWatchlist,
   markAsWatched,
@@ -112,3 +142,41 @@ export const selectLibraryStats = (state: RootState) => {
     watched: movies.filter((m) => m.status === "watched").length,
   };
 };
+
+export const selectFavoritesCount = (state: RootState): number =>
+  selectLibraryStats(state).favorites;
+
+export const selectWatchedCount = (state: RootState): number =>
+  selectLibraryStats(state).watched;
+
+export const selectWatchlistCount = (state: RootState): number =>
+  Object.values(selectSaved(state).entities).filter((m) => m.status === "watchlist")
+    .length;
+
+/** Primary genre token from watched movies’ genre strings (split on " • "). */
+export const selectMostWatchedGenre = (state: RootState): string | null => {
+  const watched = Object.values(selectSaved(state).entities).filter(
+    (m) => m.status === "watched",
+  );
+  if (watched.length === 0) return null;
+
+  const counts = new Map<string, number>();
+  for (const m of watched) {
+    const parts = m.genre
+      .split("•")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const primary = parts[0] ?? m.genre.trim();
+    if (!primary) continue;
+    counts.set(primary, (counts.get(primary) ?? 0) + 1);
+  }
+
+  const sorted = [...counts.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0]);
+  });
+  return sorted[0]?.[0] ?? null;
+};
+
+export const selectRecentlyViewed = (state: RootState): RecentlyViewedEntry[] =>
+  selectSaved(state).recentlyViewed;

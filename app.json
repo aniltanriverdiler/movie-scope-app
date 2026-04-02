@@ -24,6 +24,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Movie Scope to access your photos to set your profile picture."
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
