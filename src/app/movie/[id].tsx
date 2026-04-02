@@ -12,6 +12,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/icons";
 import { fetchMovieDetails } from "@/services/api";
 import useFetch from "@/services/usefetch";
+import {
+  addToWatchlist,
+  markAsWatched,
+  removeMovie,
+  selectSavedMovieById,
+  toggleFavorite,
+} from "@/store/features/savedMoviesSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { movieDetailsToMovie } from "@/utils/savedMovieFromDetails";
 
 interface MovieInfoProps {
   label: string;
@@ -32,10 +41,22 @@ const MovieInfo = ({ label, value }: MovieInfoProps) => {
 const MovieDetail = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const dispatch = useAppDispatch();
 
   const { data: movie, loading } = useFetch(() =>
     fetchMovieDetails(id as string),
   );
+
+  // Get movie ID and payload
+  const movieId = movie ? String(movie.id) : "";
+  const moviePayload = movie ? movieDetailsToMovie(movie) : null;
+
+  // Saved movie details
+  const saved = useAppSelector(selectSavedMovieById(movieId));
+
+  const fav = saved?.status === "favorite";
+  const wl = saved?.status === "watchlist";
+  const wd = saved?.status === "watched";
 
   if (loading) {
     return (
@@ -89,6 +110,49 @@ const MovieDetail = () => {
             <Text className="text-light-200 text-sm ">
               {movie?.vote_count} votes
             </Text>
+          </View>
+
+          {/* Favorites , Watch list , Watched Films Toggle */}
+          <View className="flex-row gap-x-3 mt-4">
+            <TouchableOpacity
+              className={`px-3 py-2 rounded-lg ${fav ? "bg-accent" : "bg-dark-100"}`}
+              disabled={!moviePayload}
+              onPress={() =>
+                moviePayload && dispatch(toggleFavorite(moviePayload))
+              }
+            >
+              <Text className="text-white font-semibold text-sm">
+                {fav ? "Favorited" : "Favorite"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`px-3 py-2 rounded-lg ${wl ? "bg-accent" : "bg-dark-100"}`}
+              disabled={!moviePayload}
+              onPress={() => {
+                if (!moviePayload) return;
+                if (wl) dispatch(removeMovie(moviePayload.id));
+                else dispatch(addToWatchlist(moviePayload));
+              }}
+            >
+              <Text className="text-white font-semibold text-sm">
+                {wl ? "In Watchlist" : "Watchlist"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`px-3 py-2 rounded-lg ${wd ? "bg-accent" : "bg-dark-100"}`}
+              disabled={!moviePayload}
+              onPress={() => {
+                if (!moviePayload) return;
+                if (wd) dispatch(removeMovie(moviePayload.id));
+                else dispatch(markAsWatched(moviePayload));
+              }}
+            >
+              <Text className="text-white font-semibold text-sm">
+                {wd ? "Watched" : "Mark Watched"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Movie Overview */}

@@ -14,6 +14,7 @@ import SearchBar from "@/components/SearchBar";
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch Movies
   const {
     data: movies = [],
     loading,
@@ -22,10 +23,12 @@ const Search = () => {
     reset,
   } = useFetch(() => fetchMovies({ query: searchQuery }), false);
 
+  // Handle Search Function
   const handleSearch = (text: string) => {
     setSearchQuery(text);
   };
 
+  // Handle Search Debounce Effect
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (!searchQuery.trim()) {
@@ -50,12 +53,14 @@ const Search = () => {
 
   return (
     <View className="flex-1 bg-primary">
+      {/* Background Image */}
       <Image
         source={images.bg}
         className="flex-1 absolute w-full z-0"
         resizeMode="cover"
       />
 
+      {/* FlatList for Movies */}
       <FlatList
         className="px-5"
         data={movies as Movie[]}
